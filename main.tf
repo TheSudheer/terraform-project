@@ -5,6 +5,7 @@ variable "vpc_cidr_block" {}
 variable "subnet_cidr_block" {}
 variable "avail_zone" {}
 variable "env_prefix" {}
+variable "my_ip" {}
 
 # Creating a custom VPC with a name based on the environment prefix
 resource "aws_vpc" "myapp-vpc" {
@@ -40,9 +41,42 @@ resource "aws_default_route_table" "main-rtb" {
     gateway_id = aws_internet_gateway.gw.id
   }
 
- tags = {
+  tags = {
     Name = "${var.env_prefix}-main-rtb"
   }
+}
 
+resource "aws_security_group" "myapp-sg" {
+  name   = "myapp-sg"
+  vpc_id = aws_vpc.myapp-vpc.id
+
+  # Ingress rule for SSH (port 22)
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "TCP"
+    cidr_blocks = [var.my_ip]   # Only allow your specific IP (e.g., "85.246.32.98/32")
+  }
+
+  # Ingress rule for accessing Nginx web server (port 8080)
+  ingress {
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "TCP"
+    cidr_blocks = [var.my_ip]  # Open to any IP address
+  }
+
+  # Egress rule to allow all outgoing traffic
+  egress {
+    from_port       = 0
+    to_port         = 0
+    protocol        = "-1"          # "-1" means all protocols
+    cidr_blocks     = [var.my_ip]
+    prefix_list_ids = []
+  }
+  
+  tags = {
+    Name = "${var.env_prefix}-myapp-sg"
+  }
 }
 
