@@ -40,8 +40,9 @@ resource "aws_default_route_table" "main-rtb" {
     gateway_id = aws_internet_gateway.gw.id
   }
 
-  tags = {
-    Name = "example"
+ tags = {
+    Name = "${var.env_prefix}-main-rtb"
   }
+
 }
 
