@@ -7,6 +7,7 @@ variable "avail_zone" {}
 variable "env_prefix" {}
 variable "my_ip" {}
 variable "instance_type" {}
+variable "public_key_location" {}
 
 # Creating a custom VPC with a name based on the environment prefix
 resource "aws_vpc" "myapp-vpc" {
@@ -101,14 +102,24 @@ output "aws_ami_id" {
   value = data.aws_ami.latest-amazon-linux-image.id
 }
 
+output "ec2_public_ip" {
+  value = aws_instance.myapp-server.public_ip
+}
+
+
+resource "aws_key_pair" "ssh-key" {
+  key_name   = "aws-ssh-1"
+  public_key = file(var.public_key_location)
+}
+
 resource "aws_instance" "myapp-server" {
   ami           = data.aws_ami.latest-amazon-linux-image.id
   instance_type = var.instance_type    # Choose an appropriate instance type
   subnet_id     = aws_subnet.myapp-subnet-1.id
   vpc_security_group_ids = [aws_security_group.myapp-sg.id]
-  key_name      = "new-ssh"
+  key_name      = aws_key_pair.ssh-key.key_name
 
-  associate_public_ip_address = true  
+  associate_public_ip_address = true
 
   availability_zone      = var.avail_zone
 
@@ -116,6 +127,4 @@ resource "aws_instance" "myapp-server" {
     Name = "${var.env_prefix}-myapp-server"
   }
 }
-
-
 
