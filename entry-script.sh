@@ -1,9 +1,6 @@
 #!/bin/bash
 set -e
 
-# Log output for debugging
-exec > >(tee /var/log/user-data.log | logger -t user-data -s 2>/dev/console) 2>&1
-
 # Update the system and install Docker
 yum -y update && yum -y install docker
 
@@ -22,4 +19,3 @@ sleep 5
 
 # Pull and run the NGINX container in detached mode
 docker run -d --name nginx-container -p 8080:80 nginx
-
