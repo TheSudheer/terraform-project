@@ -1,14 +1,5 @@
 provider "aws" {}
 
-# Variables for reusability and flexibility
-variable "vpc_cidr_block" {}
-variable "subnet_cidr_block" {}
-variable "avail_zone" {}
-variable "env_prefix" {}
-variable "my_ip" {}
-variable "instance_type" {}
-variable "public_key_location" {}
-
 # Creating a custom VPC with a name based on the environment prefix
 resource "aws_vpc" "myapp-vpc" {
     cidr_block  = var.vpc_cidr_block
@@ -98,14 +89,6 @@ data "aws_ami" "latest-amazon-linux-image" {
 }
 
 
-output "aws_ami_id" {
-  value = data.aws_ami.latest-amazon-linux-image.id
-}
-
-output "ec2_public_ip" {
-  value = aws_instance.myapp-server.public_ip
-}
-
 resource "aws_key_pair" "ssh-key" {
   key_name   = "aws-ssh-1"
   public_key = file(var.public_key_location)
@@ -120,8 +103,27 @@ resource "aws_instance" "myapp-server" {
 
   associate_public_ip_address = true
   availability_zone      = var.avail_zone
- 
-  user_data = file("entry-script.sh") 
+
+  #user_data = file("entry-script.sh")
+
+  connection {
+    type = "ssh"
+    host = self.public_ip
+    user = "ec2-user"
+    private_key = file(var.private_key_location)
+  }
+
+  provisioner "file" {
+    source = "entry-script.sh"
+    destination = "/home/ec2-user/entry-script-on-ec2.sh"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "chmod +x /home/ec2-user/entry-script-on-ec2.sh",
+      "/home/ec2-user/entry-script-on-ec2.sh"
+      ]
+  }
   
   user_data_replace_on_change = true
   

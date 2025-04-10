@@ -1,16 +1,25 @@
 #!/bin/bash
 set -e
 
+# Log output for debugging
+exec > >(tee /var/log/user-data.log | logger -t user-data -s 2>/dev/console) 2>&1
+
 # Update the system and install Docker
-sudo yum -y update && sudo yum -y install docker
+yum -y update && yum -y install docker
 
-# Start and enable the Docker service
-sudo systemctl start docker
-sudo systemctl enable docker
+# Start and enable Docker service
+systemctl start docker
+systemctl enable docker
 
-# Add the ec2-user to the docker group for non-sudo usage (effective after a relogin)
-sudo usermod -aG docker ec2-user
+# Set permissions on Docker socket
+chmod 666 /var/run/docker.sock
 
-# Run the nginx container in detached mode with proper port mapping.
-# Mapping host port 8080 to container port 80.
-docker run -d -p 8080:80 nginx
+# Add the current user (default to ec2-user) to the docker group
+usermod -aG docker "${USER:-ec2-user}"
+
+# Wait a few seconds to ensure Docker is fully ready
+sleep 5
+
+# Pull and run the NGINX container in detached mode
+docker run -d --name nginx-container -p 8080:80 nginx
+
